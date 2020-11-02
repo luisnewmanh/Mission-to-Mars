@@ -18,6 +18,7 @@ def scrape_all():
         "news_paragraph": news_paragraph,
         "featured_image": featured_image(browser),
         "facts": mars_facts(),
+        "hemispheres": mars_hemispheres(browser),
         "last_modified": dt.datetime.now()
     }
 
@@ -97,6 +98,48 @@ def mars_facts():
     summary=df.to_html(classes="table table-striped")
     
     return summary
+
+def mars_hemispheres(browser):
+    # Visit the hemisphere website
+    url = 'https://astrogeology.usgs.gov/search/results?q=hemisphere+enhanced&k1=target&v1=Mars'
+    browser.visit(url)
+
+    #Parse HTML
+    html = browser.html
+    hem_soup = soup(html, 'html.parser')
+
+    try:
+        #Title list
+        hems_titles = hem_soup.select('div.description a h3')
+        for title in range (4):
+            hems_titles[title]=hems_titles[title].text
+
+        #Image List
+        images=hem_soup.select('div.item a')
+        for im in range (8):    
+            test=images[im].get('href')
+            url_image=f'https://astrogeology.usgs.gov{test}'
+            browser.visit(url_image)
+            #Parse the resulting html with soup
+            html2 = browser.html
+            img_soup2 = soup(html2, 'html.parser')
+            #get url
+            img_url_hem = img_soup2.select_one('div.downloads ul li a').get("href")
+            images[im]=img_url_hem
+        im_list=set(images)
+        im_list=list(im_list)
+        im_list.sort()
+
+        #Create list with directories
+        mars_list=[]
+        for element in range (4):
+            mars_dic = {"img_url": im_list[element],
+                        "title": hems_titles[element]}
+            mars_list.append(mars_dic)
+        mars_list
+    except AttributeError:
+        return None
+    return mars_list
 
 if __name__ == "__main__":
     # If running as script, print scraped data
